@@ -108,8 +108,8 @@ async function waitOTP(token){
       const itemRes = await fetch(`https://api.mail.tm/messages/${msgId}`, {headers});
       if (!itemRes.ok) { await sleep(2500); continue; }
       const item = await itemRes.json();
-      const textBody = item.text || "";
-      const htmlBody = item.html || "";
+      const textBody = typeof item.text === 'string' ? item.text : String(item.text || '');
+      const htmlBody = typeof item.html === 'string' ? item.html : String(item.html || '');
       // Try strong HTML pattern first (Garena puts OTP in <b> tag)
       let found = htmlBody.match(/<b[^>]*>(\d{6,8})<\/b>/i);
       if (!found) {
