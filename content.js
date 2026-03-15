@@ -116,21 +116,90 @@ async function waitOTP(token){
   throw new Error("OTP timeout");
 }
 
+function findInput(candidates){
+  for (const sel of candidates) {
+    const el = document.querySelector(sel);
+    if (el) return el;
+  }
+  // fallback: match by placeholder text content
+  const inputs = Array.from(document.querySelectorAll('input'));
+  for (const input of inputs) {
+    const placeholder = (input.placeholder || '').toLowerCase();
+    for (const word of candidates) {
+      if (word.startsWith('placeholder:')) {
+        const text = word.replace('placeholder:', '').toLowerCase();
+        if (placeholder.includes(text)) return input;
+      }
+    }
+  }
+  return null;
+}
+
+function findButtonByText(candidates){
+  const buttons = Array.from(document.querySelectorAll('button'));
+  for (const btn of buttons) {
+    const text = (btn.innerText || btn.textContent || '').toLowerCase();
+    if (!text) continue;
+    for (const cand of candidates) {
+      if (text.includes(cand.toLowerCase())) return btn;
+    }
+  }
+  return null;
+}
+
 async function register(){
   try {
     const user = generateUsername();
     const pass = generatePassword();
 
-    const usernameI = document.querySelector('input[placeholder="Tên truy cập"]');
-    const passwordI = document.querySelector('input[placeholder="Mật khẩu"]');
-    const repassI = document.querySelector('input[placeholder="Nhập lại mật khẩu"]');
-    const emailI = document.querySelector('input[type="email"]');
-    const otpI = document.querySelector('input[type="tel"]');
-    const otpBtn = document.querySelector('.verification button');
-    const regBtn = document.querySelector('button.primary');
+    const usernameI = findInput([
+      'input[name=username]',
+      'input[name=account]',
+      'input[placeholder="Tên truy cập"]',
+      'input[placeholder*="username"]',
+      'input[placeholder*="tên đăng nhập"]',
+      'input[placeholder*="tên truy cập"]',
+      'input[id*=user]'
+    ]);
+
+    const passwordI = findInput([
+      'input[name=password]',
+      'input[placeholder="Mật khẩu"]',
+      'input[placeholder*="password"]',
+      'input[id*=pass]'
+    ]);
+
+    const repassI = findInput([
+      'input[name=confirmPassword]',
+      'input[placeholder="Nhập lại mật khẩu"]',
+      'input[placeholder*="nhập lại"]',
+      'input[placeholder*="confirm"]',
+      'input[id*=repass]'
+    ]);
+
+    const emailI = findInput([
+      'input[type=email]',
+      'input[name=email]',
+      'input[placeholder*="email"]',
+      'input[id*=email]'
+    ]);
+
+    const otpI = findInput([
+      'input[type=tel]',
+      'input[name=otp]',
+      'input[placeholder*="otp"]',
+      'input[placeholder*="mã"]',
+      'input[id*=otp]'
+    ]);
+
+    const otpBtn = findButtonByText(['gửi mã', 'send code', 'gửi', 'verify', 'xác minh']);
+    const regBtn = findButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']);
 
     if (!usernameI || !passwordI || !repassI || !emailI || !otpI || !otpBtn || !regBtn) {
       console.error('Missing one or more fields.');
+      appendLog('Missing one or more required form fields; retry when form is visible.');
+      setRegisterState('error');
+      addResult(false);
       return;
     }
 
@@ -142,6 +211,7 @@ async function register(){
     emailI.value = mail.address;
 
     otpBtn.click();
+    await sleep(500); // wait for OTP button action to trigger
 
     const otp = await waitOTP(mail.token);
     otpI.value = otp;
