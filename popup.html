@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Garena Reg Tool</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; width: 300px; }
+    .panel { padding: 10px; }
+    .btn { width: 100%; padding: 8px; margin: 4px 0; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+    .btn.red { background: #d50000; color: white; }
+    .btn.green { background: #00a859; color: white; }
+    .btn.blue { background: #0066cc; color: white; }
+    .btn.yellow { background: #ffb300; color: #222; }
+    .status { margin: 8px 0; font-size: 14px; font-weight: bold; }
+    .meter { background: #f0f0f0; padding: 8px; border-radius: 6px; }
+    .log { height: 120px; overflow-y: auto; background: #111; color: #e6e6e6; font-size: 11px; padding: 6px; border-radius: 4px; }
+    .row { display: flex; gap: 4px; margin-top: 4px; }
+    .row .half { flex: 1; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="row"><button id="start" class="btn green">▶ Bắt Đầu</button></div>
+    <div class="row"><button id="stop" class="btn red">■ Dừng Lại</button></div>
+    <div class="row"><button id="status" class="btn blue">🔎 Xem trạng thái</button></div>
+    <div class="row"><button id="clear" class="btn yellow">🧹 Xóa dữ liệu</button></div>
+
+    <div class="status">Trạng thái: <span id="state">idle</span></div>
+    <div class="meter">Thành công: <span id="success">0</span>  Thất bại: <span id="fail">0</span></div>
+    <div class="row"><button id="test" class="btn blue">🧪 Test generate</button></div>
+    <div class="row"><button id="download" class="btn green">📄 Tải file acc.txt</button></div>
+    <div class="log" id="log">Log...</div>
+  </div>
+
+  <script>
+    const startBtn = document.getElementById('start');
+    const stopBtn = document.getElementById('stop');
+    const statusBtn = document.getElementById('status');
+    const clearBtn = document.getElementById('clear');
+    const testBtn = document.getElementById('test');
+    const downloadBtn = document.getElementById('download');
+    const stateEl = document.getElementById('state');
+    const successEl = document.getElementById('success');
+    const failEl = document.getElementById('fail');
+    const logEl = document.getElementById('log');
+
+    function getActiveTab() {
+      return chrome.tabs.query({active: true, currentWindow: true});
+    }
+
+    async function sendMessage(cmd) {
+      const tabs = await getActiveTab();
+      if (!tabs[0]?.id) return null;
+      return new Promise(resolve => {
+        chrome.tabs.sendMessage(tabs[0].id, {cmd}, resolve);
+      });
+    }
+
+    async function refreshStatus() {
+      const data = await sendMessage('status');
+      if (!data) return;
+      stateEl.innerText = data.status || 'idle';
+      successEl.innerText = data.success || 0;
+      failEl.innerText = data.fail || 0;
+      logEl.innerHTML = (data.logs || []).slice().reverse().map(x => `<div>${x}</div>`).join('');
+    }
+
+    startBtn.onclick = async () => {
+      await sendMessage('startRegister');
+      await refreshStatus();
+    };
+    stopBtn.onclick = async () => {
+      stateEl.innerText = 'stopped';
+      appendLog('Đã nhấn dừng.');
+    };
+    statusBtn.onclick = refreshStatus;
+    clearBtn.onclick = async () => { await sendMessage('clear'); await refreshStatus(); };
+    testBtn.onclick = async () => {
+      const result = await sendMessage('testGenerate');
+      if (result) {
+        appendLog(`Test: ${result.username} | ${result.password}`);
+      }
+    };
+    downloadBtn.onclick = () => {
+      chrome.downloads.download({
+        url: 'data:text/plain;charset=utf-8,' + encodeURIComponent(localStorage.getItem('garena-acc-file') || ''),
+        filename: 'acc.txt'
+      });
+    };
+
+    function appendLog(msg) {
+      const line = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logEl.innerHTML = `<div>${line}</div>` + logEl.innerHTML;
+    }
+
+    refreshStatus();
+  </script>
+</body>
+</html>
