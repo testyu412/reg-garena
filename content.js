@@ -147,6 +147,26 @@ function findButtonByText(candidates){
   return null;
 }
 
+async function waitForButtonByText(candidates, timeout = 10000, interval = 250) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const btn = findButtonByText(candidates);
+    if (btn) return btn;
+    await sleep(interval);
+  }
+  return null;
+}
+
+async function waitForElement(selector, timeout = 10000, interval = 250){
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const el = document.querySelector(selector);
+    if (el) return el;
+    await sleep(interval);
+  }
+  return null;
+}
+
 async function register(){
   try {
     const user = generateUsername();
@@ -160,14 +180,14 @@ async function register(){
       'input[placeholder*="tên đăng nhập"]',
       'input[placeholder*="tên truy cập"]',
       'input[id*=user]'
-    ]);
+    ]) || await waitForElement('input[name=username], input[name=account], input[placeholder*="Tên"], input[placeholder*="user"], input[id*=user]');
 
     const passwordI = findInput([
       'input[name=password]',
       'input[placeholder="Mật khẩu"]',
       'input[placeholder*="password"]',
       'input[id*=pass]'
-    ]);
+    ]) || await waitForElement('input[name=password], input[placeholder*="Mật khẩu"], input[placeholder*="password"], input[id*=pass]');
 
     const repassI = findInput([
       'input[name=confirmPassword]',
@@ -175,14 +195,14 @@ async function register(){
       'input[placeholder*="nhập lại"]',
       'input[placeholder*="confirm"]',
       'input[id*=repass]'
-    ]);
+    ]) || await waitForElement('input[name=confirmPassword], input[placeholder*="Nhập lại"], input[placeholder*="confirm"], input[id*=repass]');
 
     const emailI = findInput([
       'input[type=email]',
       'input[name=email]',
       'input[placeholder*="email"]',
       'input[id*=email]'
-    ]);
+    ]) || await waitForElement('input[type=email], input[name=email], input[placeholder*="email"], input[id*=email]');
 
     const otpI = findInput([
       'input[type=tel]',
@@ -190,10 +210,10 @@ async function register(){
       'input[placeholder*="otp"]',
       'input[placeholder*="mã"]',
       'input[id*=otp]'
-    ]);
+    ]) || await waitForElement('input[type=tel], input[name=otp], input[placeholder*="otp"], input[id*=otp]');
 
-    const otpBtn = findButtonByText(['gửi mã', 'send code', 'gửi', 'verify', 'xác minh']);
-    const regBtn = findButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']);
+    const otpBtn = findButtonByText(['gửi mã', 'send code', 'gửi', 'verify', 'xác minh']) || (await waitForButtonByText(['gửi mã', 'send code', 'gửi', 'verify', 'xác minh']));
+    const regBtn = findButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']) || (await waitForButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']));
 
     if (!usernameI || !passwordI || !repassI || !emailI || !otpI || !otpBtn || !regBtn) {
       console.error('Missing one or more fields.');
