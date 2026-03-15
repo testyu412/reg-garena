@@ -7,17 +7,18 @@ const downloadBtn = document.getElementById('download');
 const stateEl = document.getElementById('state');
 const successEl = document.getElementById('success');
 const failEl = document.getElementById('fail');
+const countInput = document.getElementById('count');
 const logEl = document.getElementById('log');
 
 function getActiveTab() {
   return chrome.tabs.query({active: true, currentWindow: true});
 }
 
-async function sendMessage(cmd) {
+async function sendMessage(cmd, count=1) {
   const tabs = await getActiveTab();
   if (!tabs[0]?.id) return {error: 'No active tab'};
   return new Promise((resolve) => {
-    chrome.tabs.sendMessage(tabs[0].id, {cmd}, (response) => {
+    chrome.tabs.sendMessage(tabs[0].id, {cmd, count}, (response) => {
       if (chrome.runtime.lastError) {
         resolve({error: chrome.runtime.lastError.message});
         return;
@@ -46,7 +47,8 @@ async function refreshStatus() {
 }
 
 startBtn.onclick = async () => {
-  const result = await sendMessage('startRegister');
+  const count = Number(countInput?.value || 1);
+  const result = await sendMessage('startRegister', count);
   if (result?.error) {
     appendLog('Error sending msg: ' + result.error);
     stateEl.innerText = 'no script';
@@ -56,6 +58,7 @@ startBtn.onclick = async () => {
 };
 
 stopBtn.onclick = async () => {
+  await sendMessage('stopRegister');
   stateEl.innerText = 'stopped';
   appendLog('Đã nhấn dừng.');
 };

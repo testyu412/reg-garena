@@ -51,6 +51,14 @@ function addResult(success){
   localStorage.setItem(key, String((parseInt(localStorage.getItem(key) || '0',10) || 0) + 1));
 }
 
+function addAccountToStorage(acc){
+  const key = 'garena-acc-file';
+  const old = localStorage.getItem(key) || '';
+  const next = old ? `${old}\n${acc}` : acc;
+  localStorage.setItem(key, next);
+  localStorage.setItem('garena-acc-file-last', acc);
+}
+
 async function generateTempEmail(){
   const domainsRes = await fetch("https://api.mail.tm/domains");
   if (!domainsRes.ok) throw new Error("Failed to fetch domains");
@@ -195,6 +203,8 @@ async function waitForElement(selector, timeout = 10000, interval = 250){
   }
   return null;
 }
+
+let garenaRunning = false;
 
 async function register(){
   try {
@@ -353,6 +363,7 @@ async function register(){
 
     const acc = `${user}|${pass}|${mail.address}`;
     appendLog(`Đăng ký thành công: ${acc}`);
+    addAccountToStorage(acc);
     addResult(true);
     setRegisterState('success');
     console.log(acc);
@@ -369,10 +380,33 @@ chrome.runtime?.onMessage?.addListener((message, sender, sendResponse) => {
   if (!message || !message.cmd) return;
 
   if (message.cmd === 'startRegister') {
+    const count = Number(message.count || 1);
+    garenaRunning = true;
     setRegisterState('running');
-    appendLog('Bắt đầu đăng ký...');
-    register().then(() => sendResponse({ok:true})).catch(()=>sendResponse({ok:false}));
+    appendLog(`Bắt đầu đăng ký ${count} lần...`);
+    (async ()=>{
+      for (let i=0;i<count && garenaRunning;i++) {
+        appendLog(`Đăng ký lần ${i+1}/${count}...`);
+        await register();
+        await sleep(1500);
+      }
+      if (garenaRunning) {
+        setRegisterState('idle');
+        appendLog('Đã hoàn tất batch.');
+      } else {
+        setRegisterState('stopped');
+        appendLog('Đã dừng bởi người dùng.');
+      }
+    })().then(()=>sendResponse({ok:true})).catch(()=>sendResponse({ok:false}));
     return true;
+  }
+
+  if (message.cmd === 'stopRegister') {
+    garenaRunning = false;
+    setRegisterState('stopped');
+    appendLog('STOP received.');
+    sendResponse({ok:true});
+    return;
   }
 
   if (message.cmd === 'testGenerate') {
@@ -397,6 +431,8 @@ chrome.runtime?.onMessage?.addListener((message, sender, sendResponse) => {
     localStorage.removeItem('garena-reg-success');
     localStorage.removeItem('garena-reg-fail');
     localStorage.removeItem('garena-reg-state');
+    localStorage.removeItem('garena-acc-file');
+    localStorage.removeItem('garena-acc-file-last');
     appendLog('Dữ liệu đã xóa.');
     sendResponse({ok:true});
     return;
