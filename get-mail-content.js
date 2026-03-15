@@ -34,9 +34,16 @@ async function main(){
     console.log('Subject:', m.subject);
     console.log('Text snippet:', (m.text || '').slice(0, 400));
     console.log('HTML snippet:', (m.html || '').slice(0, 400));
-    const allText = (m.text || '') + '\n' + (m.html || '');
-    const otp = allText.match(/\b\d{4,8}\b/);
-    if (otp) console.log('OTP found:', otp[0]);
+    const textBody = typeof m.text === 'string' ? m.text : (m.text || '');
+    const htmlBody = typeof m.html === 'string' ? m.html : String(m.html || '');
+    let otpMatch = htmlBody.match(/<b[^>]*>(\d{6,8})<\/b>/i);
+    if (!otpMatch) {
+      otpMatch = textBody.match(/Mã\s*(?:xác minh|OTP|mã)?[^\d]*(\d{6,8})/i);
+    }
+    if (!otpMatch) {
+      otpMatch = (textBody + '\n' + htmlBody).match(/\b\d{6,8}\b/);
+    }
+    if (otpMatch) console.log('OTP found:', otpMatch[1] || otpMatch[0]);
     console.log('\n');
   }
 }

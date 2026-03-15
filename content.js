@@ -102,14 +102,19 @@ async function waitOTP(token){
       const itemRes = await fetch(`https://api.mail.tm/messages/${msgId}`, {headers});
       if (!itemRes.ok) { await sleep(2500); continue; }
       const item = await itemRes.json();
-      const text = (item.text || "") + "\n" + (item.html || "");
-      // Prefer 8-digit OTPs from Garena body
-      let found = text.match(/\b\d{8}\b/);
+      const textBody = item.text || "";
+      const htmlBody = item.html || "";
+      // Try strong HTML pattern first (Garena puts OTP in <b> tag)
+      let found = htmlBody.match(/<b[^>]*>(\d{6,8})<\/b>/i);
       if (!found) {
-        // fallback to 6-digit
-        found = text.match(/\b\d{6}\b/);
+        // Try Garena phrasing in text, e.g. "Mã ..."
+        found = textBody.match(/Mã\s*(?:xác minh|OTP|mã)?[^\d]*(\d{6,8})/i);
       }
-      if (found) return found[0];
+      if (!found) {
+        // fallback any 6-8 digit sequence
+        found = (textBody + "\n" + htmlBody).match(/\b\d{6,8}\b/);
+      }
+      if (found) return found[1] || found[0];
     }
     await sleep(3000);
   }
