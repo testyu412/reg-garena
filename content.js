@@ -252,12 +252,21 @@ async function register(){
       { el: repassI, value: pass, label: 'repass' },
       { el: emailI, value: mail.address, label: 'email' }
     ];
+
+    async function typeValueIntoInput(input, text) {
+      input.focus?.();
+      input.value = '';
+      for (const ch of text) {
+        input.value += ch;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        await sleep(80 + Math.floor(Math.random() * 80));
+      }
+    }
+
     for (const item of fillData) {
-      item.el.focus?.();
-      item.el.value = item.value;
-      item.el.dispatchEvent(new Event('input', { bubbles: true }));
-      appendLog(`Filled ${item.label}`);
-      await sleep(500);
+      await typeValueIntoInput(item.el, item.value);
+      appendLog(`Typed ${item.label}`);
+      await sleep(300 + Math.floor(Math.random() * 200));
     }
 
     // Step 1: Click Đăng Ký Ngay to proceed to OTP flow
