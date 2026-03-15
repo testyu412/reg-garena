@@ -227,7 +227,6 @@ async function register(){
       'input[id*=email]'
     ]) || await waitForElement('input[type=email], input[name=email], input[placeholder*="email"], input[id*=email]');
 
-    const otpBtn = findButtonByText(['nhận mã', 'gửi mã', 'send code', 'gửi', 'verify', 'xác minh', 'chờ']) || document.querySelector('.verification button') || await waitForButtonByText(['nhận mã', 'gửi mã', 'send code', 'gửi', 'verify', 'xác minh', 'chờ']);
     const regBtn = findButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']) || await waitForButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']);
 
     const missing = [];
@@ -235,7 +234,6 @@ async function register(){
     if (!passwordI) missing.push('password');
     if (!repassI) missing.push('confirm password');
     if (!emailI) missing.push('email');
-    if (!otpBtn) missing.push('otp button');
     if (!regBtn) missing.push('register button');
 
     if (missing.length) {
@@ -254,8 +252,29 @@ async function register(){
     const mail = await generateTempEmail();
     emailI.value = mail.address;
 
+    // Step 1: Click Đăng Ký Ngay to proceed to OTP flow
+    regBtn.click();
+    appendLog('Clicked Đăng Ký Ngay, waiting for OTP section.');
+    await sleep(1500);
+
+    // Step 2: Click NHẬN MÃ (OTP button)
+    let otpBtn = findButtonByText(['nhận mã', 'gửi mã', 'send code', 'gửi', 'verify', 'xác minh', 'chờ']);
+    if (!otpBtn) otpBtn = document.querySelector('.verification button');
+    if (!otpBtn) otpBtn = await waitForButtonByText(['nhận mã', 'gửi mã', 'send code', 'gửi', 'verify', 'xác minh', 'chờ'], 10000);
+    if (!otpBtn) otpBtn = await waitForElement('.verification button', 10000);
+
+    if (!otpBtn) {
+      const msg = 'Missing otp button after clicking register';
+      console.error(msg);
+      appendLog(msg);
+      setRegisterState('error');
+      addResult(false);
+      return;
+    }
+
     otpBtn.click();
-    await sleep(1000);
+    appendLog('Clicked NHẬN MÃ, waiting for OTP input...');
+    await sleep(1500);
 
     const otpI = findInput([
       'input[type=tel]',
@@ -265,10 +284,8 @@ async function register(){
       'input[id*=otp]'
     ]) || findInputByLabelText(['otp', 'mã', 'mã xác minh']) || await waitForElement('input[type=tel], input[name=otp], input[placeholder*=otp], input[id*=otp]', 10000);
 
-    const regBtnFinal = findButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']) || await waitForButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất'], 10000);
-
-    if (!otpI || !regBtnFinal) {
-      const msg = 'Missing fields after send OTP:' + (!otpI ? ' otp field' : '') + (!regBtnFinal ? ' register button' : '');
+    if (!otpI) {
+      const msg = 'Missing otp field after clicking NHẬN MÃ';
       console.error(msg);
       appendLog(msg);
       setRegisterState('error');
@@ -278,6 +295,18 @@ async function register(){
 
     const otp = await waitOTP(mail.token);
     otpI.value = otp;
+
+    // Submit final registration if there is still button
+    const regBtnFinal = findButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']) || await waitForButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất'], 10000) || regBtn;
+    if (!regBtnFinal) {
+      const msg = 'Missing register button after otp';
+      console.error(msg);
+      appendLog(msg);
+      setRegisterState('error');
+      addResult(false);
+      return;
+    }
+
     regBtnFinal.click();
 
     const acc = `${user}|${pass}|${mail.address}`;
