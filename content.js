@@ -253,14 +253,33 @@ async function register(){
       { el: emailI, value: mail.address, label: 'email' }
     ];
 
+    function dispatchInputEvents(input, value) {
+      input.focus?.();
+      const events = ['keydown', 'keypress', 'input', 'keyup', 'change'];
+      for (const ev of events) {
+        const eventObj = new Event(ev, { bubbles: true });
+        input.dispatchEvent(eventObj);
+      }
+      input.blur?.();
+    }
+
     async function typeValueIntoInput(input, text) {
       input.focus?.();
       input.value = '';
       for (const ch of text) {
+        const keydown = new KeyboardEvent('keydown', { bubbles:true, key: ch });
+        const keypress = new KeyboardEvent('keypress', { bubbles:true, key: ch });
+        input.dispatchEvent(keydown);
+        input.dispatchEvent(keypress);
         input.value += ch;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
+        const inputEvent = new Event('input', { bubbles: true });
+        input.dispatchEvent(inputEvent);
+        const keyup = new KeyboardEvent('keyup', { bubbles:true, key: ch });
+        input.dispatchEvent(keyup);
         await sleep(80 + Math.floor(Math.random() * 80));
       }
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      input.blur?.();
     }
 
     for (const item of fillData) {
