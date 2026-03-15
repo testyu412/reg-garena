@@ -227,7 +227,7 @@ async function register(){
       'input[id*=email]'
     ]) || await waitForElement('input[type=email], input[name=email], input[placeholder*="email"], input[id*=email]');
 
-    const otpBtn = findButtonByText(['gửi mã', 'send code', 'gửi', 'verify', 'xác minh']) || await waitForButtonByText(['gửi mã', 'send code', 'gửi', 'verify', 'xác minh']);
+    const otpBtn = findButtonByText(['nhận mã', 'gửi mã', 'send code', 'gửi', 'verify', 'xác minh', 'chờ']) || document.querySelector('.verification button') || await waitForButtonByText(['nhận mã', 'gửi mã', 'send code', 'gửi', 'verify', 'xác minh', 'chờ']);
     const regBtn = findButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']) || await waitForButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']);
 
     const missing = [];
