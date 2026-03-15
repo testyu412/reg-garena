@@ -152,6 +152,24 @@ function findButtonByText(candidates){
   return null;
 }
 
+function findInputByLabelText(keywords){
+  const labels = Array.from(document.querySelectorAll('label'));
+  for (const label of labels) {
+    const text = (label.innerText || label.textContent || '').toLowerCase();
+    for (const kw of keywords) {
+      if (text.includes(kw.toLowerCase())) {
+        if (label.htmlFor) {
+          const input = document.getElementById(label.htmlFor);
+          if (input) return input;
+        }
+        const input = label.querySelector('input');
+        if (input) return input;
+      }
+    }
+  }
+  return null;
+}
+
 async function waitForButtonByText(candidates, timeout = 10000, interval = 250) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
@@ -215,14 +233,24 @@ async function register(){
       'input[placeholder*="otp"]',
       'input[placeholder*="mã"]',
       'input[id*=otp]'
-    ]) || await waitForElement('input[type=tel], input[name=otp], input[placeholder*="otp"], input[id*=otp]');
+    ]) || findInputByLabelText(['otp', 'mã', 'mã xác minh']) || await waitForElement('input[type=tel], input[name=otp], input[placeholder*=otp], input[id*=otp]');
 
     const otpBtn = findButtonByText(['gửi mã', 'send code', 'gửi', 'verify', 'xác minh']) || (await waitForButtonByText(['gửi mã', 'send code', 'gửi', 'verify', 'xác minh']));
     const regBtn = findButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']) || (await waitForButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']));
 
-    if (!usernameI || !passwordI || !repassI || !emailI || !otpI || !otpBtn || !regBtn) {
-      console.error('Missing one or more fields.');
-      appendLog('Missing one or more required form fields; retry when form is visible.');
+    const missing = [];
+    if (!usernameI) missing.push('username');
+    if (!passwordI) missing.push('password');
+    if (!repassI) missing.push('confirm password');
+    if (!emailI) missing.push('email');
+    if (!otpI) missing.push('otp field');
+    if (!otpBtn) missing.push('otp button');
+    if (!regBtn) missing.push('register button');
+
+    if (missing.length) {
+      const msg = 'Missing fields: ' + missing.join(', ');
+      console.error(msg);
+      appendLog(msg);
       setRegisterState('error');
       addResult(false);
       return;
