@@ -245,12 +245,20 @@ async function register(){
       return;
     }
 
-    usernameI.value = user;
-    passwordI.value = pass;
-    repassI.value = pass;
-
     const mail = await generateTempEmail();
-    emailI.value = mail.address;
+    const fillData = [
+      { el: usernameI, value: user, label: 'username' },
+      { el: passwordI, value: pass, label: 'password' },
+      { el: repassI, value: pass, label: 'repass' },
+      { el: emailI, value: mail.address, label: 'email' }
+    ];
+    for (const item of fillData) {
+      item.el.focus?.();
+      item.el.value = item.value;
+      item.el.dispatchEvent(new Event('input', { bubbles: true }));
+      appendLog(`Filled ${item.label}`);
+      await sleep(500);
+    }
 
     // Step 1: Click Đăng Ký Ngay to proceed to OTP flow
     regBtn.click();
