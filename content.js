@@ -24,9 +24,15 @@ function generateUsername(){
   return `lploz.${prefix}${suffix}`;
 }
 
-function generatePassword(){
-  const digits = Math.floor(Math.random() * 1e8).toString().padStart(8, '0');
-  return `LP@${digits}`;
+function generatePassword() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let randomPart = "";
+
+  for (let i = 0; i < 8; i++) {
+    randomPart += chars[Math.floor(Math.random() * chars.length)];
+  }
+
+  return `LP@${randomPart}`;
 }
 
 function appendLog(msg){
@@ -310,7 +316,7 @@ async function register(){
 
     otpBtn.click();
     appendLog('Clicked NHẬN MÃ, waiting for OTP input...');
-    await sleep(1500);
+    await sleep(5000);
 
     const otpI = findInput([
       'input[type=tel]',
@@ -330,10 +336,10 @@ async function register(){
     }
 
     const otp = await waitOTP(mail.token);
-    otpI.value = otp;
+    await typeValueIntoInput(otpI, otp);
 
     // Submit final registration if there is still button
-    const regBtnFinal = findButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất']) || await waitForButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất'], 10000) || regBtn;
+    const regBtnFinal = findButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất', 'Đăng Ký Ngay']) || await waitForButtonByText(['đăng ký', 'register', 'sign up', 'hoàn tất', 'Đăng Ký Ngay'], 10000) || regBtn;
     if (!regBtnFinal) {
       const msg = 'Missing register button after otp';
       console.error(msg);
