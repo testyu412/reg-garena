@@ -50,15 +50,30 @@
 
     async function sendMessage(cmd) {
       const tabs = await getActiveTab();
-      if (!tabs[0]?.id) return null;
-      return new Promise(resolve => {
-        chrome.tabs.sendMessage(tabs[0].id, {cmd}, resolve);
+      if (!tabs[0]?.id) return {error: 'No active tab'};
+      return new Promise((resolve) => {
+        chrome.tabs.sendMessage(tabs[0].id, {cmd}, (response) => {
+          if (chrome.runtime.lastError) {
+            resolve({error: chrome.runtime.lastError.message});
+            return;
+          }
+          resolve(response);
+        });
       });
     }
 
     async function refreshStatus() {
       const data = await sendMessage('status');
-      if (!data) return;
+      if (!data) {
+        appendLog('No response from content script');
+        stateEl.innerText = 'no script';
+        return;
+      }
+      if (data.error) {
+        appendLog('Error: ' + data.error);
+        stateEl.innerText = 'no script';
+        return;
+      }
       stateEl.innerText = data.status || 'idle';
       successEl.innerText = data.success || 0;
       failEl.innerText = data.fail || 0;
@@ -66,9 +81,15 @@
     }
 
     startBtn.onclick = async () => {
-      await sendMessage('startRegister');
+      const result = await sendMessage('startRegister');
+      if (result?.error) {
+        appendLog('Error sending msg: ' + result.error);
+        stateEl.innerText = 'no script';
+        return;
+      }
       await refreshStatus();
     };
+
     stopBtn.onclick = async () => {
       stateEl.innerText = 'stopped';
       appendLog('Đã nhấn dừng.');
